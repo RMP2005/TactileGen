@@ -31,15 +31,15 @@ export default function WorkspacePage() {
   const sampleImages = [
     {
       name: "Cell Structure",
-      path: "/samples/cell.png"
+      path: "/samples/sample_cell.png"
     },
     {
       name: "Circuit Diagram",
-      path: "/samples/circuit.png"
+      path: "/samples/sample_circuit.png"
     },
     {
       name: "Ray Diagram",
-      path: "/samples/ray.png"
+      path: "/samples/sample_optics.png"
     }
   ];
 
