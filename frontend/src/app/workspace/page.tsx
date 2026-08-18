@@ -27,20 +27,107 @@ export default function WorkspacePage() {
 
 
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-
+  const [viewMode, setViewMode] = useState<"original" | "tactile">("tactile");
+  const sampleImages = [
+    {
+      name: "Cell Structure",
+      path: "/samples/cell.png"
+    },
+    {
+      name: "Circuit Diagram",
+      path: "/samples/circuit.png"
+    },
+    {
+      name: "Ray Diagram",
+      path: "/samples/ray.png"
+    }
+  ];
 
 
   const handleUpload = (file: File) => {
+    const handleSample = async (path: string) => {
+
+      try {
+    
+        const response = await fetch(path);
+    
+        const blob = await response.blob();
+    
+        const file = new File(
+          [blob],
+          path.split("/").pop() || "sample.png",
+          {
+            type: blob.type
+          }
+        );
+    
+    
+        setImageUrl(
+          URL.createObjectURL(file)
+        );
+    
+    
+        setViewMode("tactile");
+    
+    
+        processImage(file);
+    
+    
+      } catch(err){
+    
+        console.log("Sample loading failed", err);
+    
+      }
+    
+    };
+    setImageUrl(
+      URL.createObjectURL(file)
+    );
+
+    setViewMode("tactile");
+
+    processImage(file);
+
+};
+
+const handleSample = async (path: string) => {
+
+  try {
+
+    const response = await fetch(path);
+
+    const blob = await response.blob();
+
+    const file = new File(
+      [blob],
+      path.split("/").pop() || "sample.png",
+      {
+        type: blob.type
+      }
+    );
+
 
     setImageUrl(
       URL.createObjectURL(file)
     );
 
+
+    setViewMode("tactile");
+
+
     processImage(file);
 
-  };
 
+  } catch(error) {
 
+    console.error(
+      "Sample loading failed:",
+      error
+    );
+
+  }
+
+};
 
   const confidence =
     result?.semantic_regions?.length
@@ -220,6 +307,53 @@ export default function WorkspacePage() {
 
 
           </label>
+          <div className="mt-10">
+
+<p className="text-xs tracking-[0.3em] text-zinc-500 mb-4">
+TRY SAMPLE DIAGRAMS
+</p>
+
+
+<div className="flex flex-col gap-3">
+
+{
+sampleImages.map((sample)=>(
+
+<button
+key={sample.name}
+
+className="text-left border border-white/10 px-4 py-3 text-sm text-zinc-400 hover:border-orange-400 hover:text-orange-400 transition"
+
+onClick={async()=>{
+
+const response = await fetch(sample.path);
+
+const blob = await response.blob();
+
+const file = new File(
+[blob],
+sample.name+".png",
+{
+type:"image/png"
+}
+);
+
+handleUpload(file);
+
+}}
+
+>
+
+{sample.name}
+
+</button>
+
+))
+}
+
+</div>
+
+</div>
 
 
 
@@ -263,9 +397,31 @@ export default function WorkspacePage() {
           <div className="flex justify-between text-xs tracking-widest text-zinc-500 mb-8">
 
 
-            <span>
-              LIVE SPECIMEN / CELL STRUCTURE
-            </span>
+          <button
+onClick={() =>
+  handleSample("/samples/sample_cell.png")
+}
+>
+ Cell Structure
+</button>
+
+
+<button
+onClick={() =>
+  handleSample("/samples/sample_circuit.png")
+}
+>
+ Circuit Diagram
+</button>
+
+
+<button
+onClick={() =>
+  handleSample("/samples/sample_optics.png")
+}
+>
+ Ray Diagram
+</button>
 
 
 
@@ -287,41 +443,73 @@ export default function WorkspacePage() {
 
 
 
-            {
-              result?.processed_image_base64 ? (
+          {
+  viewMode === "original" && imageUrl ? (
 
-                <img
-                  src={result.processed_image_base64}
-                  className="max-h-full object-contain"
-                />
+    <img
+      src={imageUrl}
+      className="max-h-full object-contain"
+    />
 
+  ) : result?.processed_image_base64 ? (
 
-              ) : imageUrl ? (
+    <img
+      src={result.processed_image_base64}
+      className="max-h-full object-contain"
+    />
 
+  ) : imageUrl ? (
 
-                <img
-                  src={imageUrl}
-                  className="max-h-full object-contain"
-                />
+    <img
+      src={imageUrl}
+      className="max-h-full object-contain"
+    />
 
+  ) : (
 
-              ) : (
+    <div className="text-zinc-600">
+      Upload diagram to begin
+    </div>
 
-
-                <div className="text-zinc-600">
-                  Upload diagram to begin
-                </div>
-
-
-              )
-            }
+  )
+}
 
 
 
             <div className="absolute inset-0 border border-orange-400/20 rounded-full scale-75 animate-pulse"/>
 
 
+
           </div>
+          <div className="flex gap-3 mt-6">
+
+
+<button
+onClick={()=>setViewMode("original")}
+className={`px-5 py-3 text-xs tracking-widest border ${
+viewMode === "original"
+? "border-orange-400 text-orange-400"
+: "border-white/20"
+}`}
+>
+ORIGINAL
+</button>
+
+
+
+<button
+onClick={()=>setViewMode("tactile")}
+className={`px-5 py-3 text-xs tracking-widest border ${
+viewMode === "tactile"
+? "border-orange-400 text-orange-400"
+: "border-white/20"
+}`}
+>
+TACTILE
+</button>
+
+
+</div>
 
 
 
