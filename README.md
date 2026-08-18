@@ -227,14 +227,16 @@ The system does not replace dedicated tactile hardware.
 
 STEM-specific Vision Language Model
 
-Automatic Braille label translation
+*Automatic Braille label translation
 
-Direct embosser integration
+*Direct embosser integration
 
-Textbook chapter conversion dashboard
+*Textbook chapter conversion dashboard
 
-Teacher accessibility platform
+*Teacher accessibility platform
+
 *Teacher accessibility dashboard 
+
 <img width="1470" height="835" alt="image" src="https://github.com/user-attachments/assets/ca2472b2-8f36-4dd4-a21e-013010c22d81" />
 <img width="1470" height="842" alt="image" src="https://github.com/user-attachments/assets/a479d761-1685-471a-aff2-ea6e374f6318" />
 
