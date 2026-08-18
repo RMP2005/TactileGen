@@ -36,9 +36,7 @@ export function useDiagramPipeline() {
 
 
 
-      const apiUrl =
-        process.env.NEXT_PUBLIC_API_URL ||
-        "http://localhost:8000";
+      const apiUrl = "https://tactilegen-production.up.railway.app";
 
 
 
