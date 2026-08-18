@@ -54,6 +54,7 @@ export function useDiagramPipeline() {
 
 
       console.log("[pipeline] fetch starting →", `${apiUrl}/api/v1/process`);
+      const t0 = performance.now();
 
       const response = await fetch(
         `${apiUrl}/api/v1/process`,
@@ -63,8 +64,10 @@ export function useDiagramPipeline() {
         }
       );
 
+      // Cancel visual timers and jump progress past the fake stages
       clearTimers();
-      console.log("[pipeline] response received, status:", response.status);
+      console.log("[pipeline] response received, status:", response.status,
+        `(${((performance.now() - t0) / 1000).toFixed(1)}s)`);
 
 
       if (!response.ok) {
@@ -75,14 +78,23 @@ export function useDiagramPipeline() {
       }
 
 
-      console.log("[pipeline] calling response.json()…");
+      // Advance to tactile BEFORE the slow JSON parse so the UI
+      // doesn't freeze at 65 % while the browser parses megabytes
+      // of base64 inside ProcessResponse.processed_image_base64.
+      setStage("tactile");
+      setProgress(90);
+
+      console.log("[pipeline] parsing response.json()…");
+      const t1 = performance.now();
       const backendResult: ProcessingResult = await response.json();
-      console.log("[pipeline] response.json() done — setting result immediately");
+      console.log("[pipeline] response.json() done",
+        `(${((performance.now() - t1) / 1000).toFixed(1)}s)`);
 
 
       setResult(backendResult);
       setStage("complete");
       setProgress(100);
+      console.log("[pipeline] result set, stage → complete");
 
 
     }
@@ -114,10 +126,6 @@ export function useDiagramPipeline() {
     setProgress(0);
 
   }, [clearTimers]);
-
-
-
-
 
 
 
