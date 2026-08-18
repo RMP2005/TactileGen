@@ -125,7 +125,6 @@ async def process_image(
         svg_str, png_b64, tactile_metadata = tactile_builder.build(
             w, h, simplified_paths, regions, labels, min_stroke_width
         )
-        del simplified_paths
         log_mem("after_build")
 
         # --- FORMAT RESPONSE ---
@@ -177,7 +176,7 @@ async def process_image(
         ]
 
         n_paths = len(formatted_paths)
-        del regions, labels
+        del regions, labels, simplified_paths
         gc.collect()
         log_mem("after_format")
 
