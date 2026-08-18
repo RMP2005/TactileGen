@@ -1,6 +1,7 @@
+import gc
+import base64
 import cv2
 import numpy as np
-from app.utils.image_io import encode_image
 from app.utils.memlog import log_mem
 
 
@@ -239,13 +240,18 @@ class TactileBuilder:
 
         log_mem("build_before_encode")
 
-        png_b64 = (
-            "data:image/png;base64,"
-            +
-            encode_image(img)
-        )
-
+        _, png_buffer = cv2.imencode('.png', img)
         del img
+        gc.collect()
+
+        b64_bytes = base64.b64encode(png_buffer)
+        del png_buffer
+
+        png_b64 = (
+            b"data:image/png;base64,"
+            + b64_bytes
+        ).decode("ascii")
+        del b64_bytes
 
 
         metadata = {

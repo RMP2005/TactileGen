@@ -122,127 +122,93 @@ async def process_image(
             labels,
             min_stroke_width
         )
-        gc.collect()
         log_mem("tactile_build")
 
 
+        n_regions = len(regions)
+        n_labels = len(labels)
 
-        formatted_regions = []
-
-
-        for i, r in enumerate(regions):
-
-            bbox = r["bbox"]
-
-            formatted_regions.append(
-                SemanticRegionModel(
-                    id=f"region_{i+1}",
-                    label=f"Region {i+1}",
-                    category="structural",
-                    confidence=0.92,
-                    bounds=RegionBounds(
-                        x=bbox[0],
-                        y=bbox[1],
-                        width=bbox[2],
-                        height=bbox[3]
-                    ),
-                    polygon_points=r.get("contour", [])
-                )
+        formatted_regions = [
+            SemanticRegionModel.model_construct(
+                id=f"region_{i+1}",
+                label=f"Region {i+1}",
+                category="structural",
+                confidence=0.92,
+                bounds=RegionBounds.model_construct(
+                    x=r["bbox"][0],
+                    y=r["bbox"][1],
+                    width=r["bbox"][2],
+                    height=r["bbox"][3]
+                ),
+                polygon_points=r.get("contour", [])
             )
+            for i, r in enumerate(regions)
+        ]
 
 
-
-        formatted_labels = []
-
-
-        for i, l in enumerate(labels):
-
-            bbox = l["bbox"]
-
-            formatted_labels.append(
-                ExtractedLabelModel(
-                    id=f"label_{i+1}",
-                    text=l["text"],
-                    x=bbox[0],
-                    y=bbox[1],
-                    width=bbox[2],
-                    height=bbox[3],
-                    confidence=float(
-                        l.get("confidence",0.9)
-                    )
-                )
+        formatted_labels = [
+            ExtractedLabelModel.model_construct(
+                id=f"label_{i+1}",
+                text=l["text"],
+                x=l["bbox"][0],
+                y=l["bbox"][1],
+                width=l["bbox"][2],
+                height=l["bbox"][3],
+                confidence=float(l.get("confidence", 0.9))
             )
+            for i, l in enumerate(labels)
+        ]
 
 
-
-        formatted_paths = []
-
-
-        for i, p in enumerate(simplified_paths):
-
-            if len(p) < 2:
-                continue
-
-
-            d = (
-                f"M {p[0][0]} {p[0][1]} "
-                +
-                " ".join(
-                    [
-                        f"L {pt[0]} {pt[1]}"
-                        for pt in p[1:]
-                    ]
-                )
+        formatted_paths = [
+            TactilePathModel.model_construct(
+                id=f"path_{i+1}",
+                path_d=(
+                    f"M {p[0][0]} {p[0][1]} "
+                    + " ".join(f"L {pt[0]} {pt[1]}" for pt in p[1:])
+                ),
+                stroke_width=min_stroke_width,
+                layer_type="primary_outline"
             )
+            for i, p in enumerate(simplified_paths)
+            if len(p) >= 2
+        ]
 
+        n_paths = len(formatted_paths)
 
-            formatted_paths.append(
-                TactilePathModel(
-                    id=f"path_{i+1}",
-                    path_d=d,
-                    stroke_width=min_stroke_width,
-                    layer_type="primary_outline"
-                )
-            )
-
+        del regions, labels, simplified_paths
+        gc.collect()
+        log_mem("formatted")
 
 
         processing_time_ms = int(
             (time.time()-start_time)*1000
         )
 
-        log_mem("response_build")
 
-
-
-        return ProcessResponse(
-
+        resp = ProcessResponse.model_construct(
             job_id=f"tg_{uuid.uuid4().hex[:8]}",
-
             status="success",
-
             processing_time_ms=processing_time_ms,
-
-
-            metadata=ProcessMetadata(
+            metadata=ProcessMetadata.model_construct(
                 original_width=w,
                 original_height=h,
-                total_regions_detected=len(formatted_regions),
-                total_lines_simplified=len(formatted_paths),
-                labels_count=len(formatted_labels)
+                total_regions_detected=n_regions,
+                total_lines_simplified=n_paths,
+                labels_count=n_labels
             ),
-
-
             tactile_svg=svg_str,
-
             processed_image_base64=png_b64,
-
             semantic_regions=formatted_regions,
-
             extracted_labels=formatted_labels,
-
             tactile_paths=formatted_paths
         )
+
+        del formatted_regions, formatted_labels, formatted_paths
+        del svg_str, png_b64
+        log_mem("response_built")
+
+        return resp
 
 
 
