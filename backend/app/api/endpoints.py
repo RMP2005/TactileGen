@@ -2,6 +2,7 @@ import gc
 import time
 import uuid
 import traceback
+import sys
 
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 
@@ -21,7 +22,7 @@ from app.pipeline.segmenter import Segmenter
 from app.pipeline.ocr_extractor import OCRExtractor
 from app.pipeline.simplifier import Simplifier
 from app.pipeline.tactile_builder import TactileBuilder
-from app.utils.memlog import log_mem
+from app.utils.memlog import log_mem, _rss_mb
 
 
 router = APIRouter()
@@ -65,6 +66,7 @@ async def process_image(
 ):
 
     start_time = time.time()
+    rss_start = _rss_mb()
 
 
     allowed_content_types = [
@@ -93,17 +95,18 @@ async def process_image(
 
     try:
 
+        log_mem("request_start")
+
         img_bgr = preprocessor.process(content)
         del content
         h, w = img_bgr.shape[:2]
-
-        log_mem("preprocess")
+        log_mem("after_preprocess")
 
         regions = segmenter.segment(img_bgr)
-        log_mem("segment")
+        log_mem("after_segment")
 
         labels = ocr_extractor.extract(img_bgr)
-        log_mem("ocr")
+        log_mem("after_ocr")
 
         simplified_paths = simplifier.simplify(
             img_bgr,
@@ -112,7 +115,8 @@ async def process_image(
             simplification_level
         )
         del img_bgr
-        log_mem("simplify")
+        gc.collect()
+        log_mem("after_simplify")
 
         svg_str, png_b64, tactile_metadata = tactile_builder.build(
             w,
@@ -122,7 +126,8 @@ async def process_image(
             labels,
             min_stroke_width
         )
-        log_mem("tactile_build")
+        del simplified_paths
+        log_mem("after_build")
 
 
         n_regions = len(regions)
@@ -176,9 +181,9 @@ async def process_image(
 
         n_paths = len(formatted_paths)
 
-        del regions, labels, simplified_paths
+        del regions, labels
         gc.collect()
-        log_mem("formatted")
+        log_mem("after_format")
 
 
         processing_time_ms = int(
@@ -206,12 +211,24 @@ async def process_image(
 
         del formatted_regions, formatted_labels, formatted_paths
         del svg_str, png_b64
+        rss_end = _rss_mb()
         log_mem("response_built")
+
+        print(
+            f"[pipeline] DONE in {processing_time_ms}ms  "
+            f"regions={n_regions} paths={n_paths} labels={n_labels}  "
+            f"rss_delta={rss_end - rss_start:+.1f}MB  "
+            f"peak={rss_end:.1f}MB",
+            file=sys.stderr,
+            flush=True
+        )
 
         return resp
 
 
 
+    except HTTPException:
+        raise
     except Exception as e:
 
         traceback.print_exc()
