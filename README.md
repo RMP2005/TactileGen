@@ -1,4 +1,5 @@
-TactileGen
+_TactileGen_
+
 "Make every diagram touchable."
 
 TactileGen is an AI-powered accessibility platform that transforms educational STEM diagrams into simplified, tactile-ready representations for blind and low-vision learners.
