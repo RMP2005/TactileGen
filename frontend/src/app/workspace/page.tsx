@@ -20,6 +20,7 @@ export default function WorkspacePage() {
   const {
     result,
     progress,
+    error,
     processImage,
     stage,
   } = useDiagramPipeline();
@@ -160,6 +161,9 @@ const handleSample = async (path: string) => {
 
     if(stage === "complete")
       return "READY";
+
+    if(stage === "error")
+      return "PROCESSING FAILED";
 
     return "AI TACTILE GENERATION";
 
@@ -662,6 +666,13 @@ TACTILE
 
 
 </div>
+
+
+{error && (
+  <div className="mt-4 p-3 border border-red-500/40 bg-red-950/30 text-red-400 text-xs rounded-lg">
+    {error}
+  </div>
+)}
 
 
 </div>

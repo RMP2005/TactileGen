@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { PipelineStage, ProcessingResult } from "@/types/diagram";
 
 
@@ -12,6 +12,13 @@ export function useDiagramPipeline() {
 
   const [progress, setProgress] = useState(0);
 
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+
+  const clearTimers = useCallback(() => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+  }, []);
 
 
   const processImage = useCallback(async (file: File) => {
@@ -20,116 +27,75 @@ export function useDiagramPipeline() {
 
       setError(null);
       setResult(null);
+      clearTimers();
 
 
       setStage("uploading");
       setProgress(10);
 
 
-
       const formData = new FormData();
-
-      formData.append(
-        "file",
-        file
-      );
+      formData.append("file", file);
 
 
-
-      const apiUrl = "https://tactilegen-production.up.railway.app";
-
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 
       let backendResult: ProcessingResult;
 
 
-
-      // START VISUAL PIPELINE
-
-      setTimeout(() => {
-        setStage("understanding");
-        setProgress(25);
-      }, 500);
-
-
-
-      setTimeout(() => {
-        setStage("segmenting");
-        setProgress(45);
-      }, 2500);
-
-
-
-      setTimeout(() => {
-        setStage("simplifying");
-        setProgress(70);
-      }, 5000);
-
-
+      // Visual pipeline — advance stages while backend works
+      timersRef.current.push(
+        setTimeout(() => { setStage("understanding"); setProgress(25); }, 500),
+      );
+      timersRef.current.push(
+        setTimeout(() => { setStage("segmenting"); setProgress(45); }, 3000),
+      );
+      timersRef.current.push(
+        setTimeout(() => { setStage("simplifying"); setProgress(65); }, 7000),
+      );
 
 
       const response = await fetch(
         `${apiUrl}/api/v1/process`,
         {
-          method:"POST",
-          body:formData
+          method: "POST",
+          body: formData,
         }
       );
 
 
+      clearTimers();
 
-      if(!response.ok){
 
+      if (!response.ok) {
+        const detail = await response.text().catch(() => "");
         throw new Error(
-          "Processing failed"
+          `Processing failed (${response.status})${detail ? ": " + detail : ""}`
         );
-
       }
 
 
-
-      backendResult =
-        await response.json();
-
-
-
-
-      // Always show simplify before tactile
-
-      await new Promise(
-        resolve => setTimeout(resolve,6000)
-      );
-
+      backendResult = await response.json();
 
 
       setStage("tactile");
-
       setProgress(90);
 
+      await new Promise(resolve => setTimeout(resolve, 800));
 
 
-      await new Promise(
-        resolve => setTimeout(resolve,1500)
-      );
-
-
-
-      setResult(
-        backendResult
-      );
-
-
+      setResult(backendResult);
       setStage("complete");
-
       setProgress(100);
 
 
-
     }
-    catch(err:any){
+    catch (err: any) {
 
+      clearTimers();
       setStage("error");
-
+      setProgress(0);
       setError(
         err.message ||
         "Processing failed"
@@ -138,23 +104,21 @@ export function useDiagramPipeline() {
     }
 
 
-  }, []);
-
+  }, [clearTimers]);
 
 
 
 
   const reset = useCallback(() => {
 
+    clearTimers();
     setStage("idle");
-
     setResult(null);
-
     setError(null);
-
     setProgress(0);
 
-  }, []);
+  }, [clearTimers]);
+
 
 
 
