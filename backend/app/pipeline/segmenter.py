@@ -1,9 +1,13 @@
 from abc import ABC, abstractmethod
+import threading
 import cv2
 import numpy as np
 import torch
 from torchvision import models, transforms
 from app.config import settings
+from app.utils.memlog import log_mem
+
+_load_lock = threading.Lock()
 
 class BaseSegmenter(ABC):
     @abstractmethod
@@ -23,10 +27,14 @@ class Segmenter(BaseSegmenter):
         
     def _load_model(self):
         if self.model is None:
-            weights = models.segmentation.DeepLabV3_MobileNet_V3_Large_Weights.DEFAULT
-            self.model = models.segmentation.deeplabv3_mobilenet_v3_large(weights=weights)
-            self.model.to(self.device)
-            self.model.eval()
+            with _load_lock:
+                if self.model is None:
+                    log_mem("seg_before_load")
+                    weights = models.segmentation.DeepLabV3_MobileNet_V3_Large_Weights.DEFAULT
+                    self.model = models.segmentation.deeplabv3_mobilenet_v3_large(weights=weights)
+                    self.model.to(self.device)
+                    self.model.eval()
+                    log_mem("seg_after_load")
             
     def segment(self, img_bgr: np.ndarray) -> list:
         self._load_model()

@@ -1,14 +1,21 @@
+import threading
 import easyocr
 import cv2
 import numpy as np
+from app.utils.memlog import log_mem
 
-# Singleton reader
+# Singleton reader with thread-safe lazy init
 _reader = None
+_reader_lock = threading.Lock()
 
 def get_reader():
     global _reader
     if _reader is None:
-        _reader = easyocr.Reader(['en'], gpu=False)
+        with _reader_lock:
+            if _reader is None:
+                log_mem("ocr_before_load")
+                _reader = easyocr.Reader(['en'], gpu=False)
+                log_mem("ocr_after_load")
     return _reader
 
 class OCRExtractor:
