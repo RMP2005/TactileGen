@@ -1,4 +1,5 @@
 import gc
+import os
 import time
 import uuid
 import traceback
@@ -19,13 +20,19 @@ from app.api.schema import (
 from app.config import settings
 from app.pipeline.preprocessor import Preprocessor
 from app.pipeline.segmenter import Segmenter
-from app.pipeline.ocr_extractor import OCRExtractor
+from app.pipeline.ocr_extractor import OCRExtractor, release_reader
 from app.pipeline.simplifier import Simplifier
 from app.pipeline.tactile_builder import TactileBuilder
 from app.utils.memlog import log_mem, _rss_mb
 
 
 router = APIRouter()
+
+# Railway 512 MB limit. EasyOCR adds ~300 MB on Linux.
+# After DeepLabV3 release, RSS should be ~250 MB on Linux.
+# If already above this, skip OCR to stay under 512 MB.
+RAILWAY_LIMIT_MB = int(os.getenv("RAILWAY_LIMIT_MB", "512"))
+MEMORY_THRESHOLD_MB = int(os.getenv("MEMORY_THRESHOLD_MB", "250"))
 
 
 preprocessor = Preprocessor()
@@ -35,10 +42,8 @@ simplifier = Simplifier()
 tactile_builder = TactileBuilder()
 
 
-
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
-
     return HealthResponse(
         status="ok",
         version="1.0.0",
@@ -46,16 +51,13 @@ async def health_check():
     )
 
 
-
 @router.get("/samples")
 async def get_samples():
-
     return [
         {"id": "sample_1", "name": "Biology Cell Structure", "type": "biology"},
         {"id": "sample_2", "name": "Electrical Circuit Diagram", "type": "physics"},
         {"id": "sample_3", "name": "Optics Ray Diagram", "type": "optics"},
     ]
-
 
 
 @router.post("/process", response_model=ProcessResponse)
@@ -66,8 +68,7 @@ async def process_image(
 ):
 
     start_time = time.time()
-    rss_start = _rss_mb()
-
+    ocr_skipped = False
 
     allowed_content_types = [
         "image/jpeg",
@@ -75,23 +76,13 @@ async def process_image(
         "image/webp"
     ]
 
-
     if file.content_type not in allowed_content_types:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid file type"
-        )
-
+        raise HTTPException(status_code=400, detail="Invalid file type")
 
     content = await file.read()
 
-
     if len(content) > settings.MAX_FILE_SIZE_MB * 1024 * 1024:
-        raise HTTPException(
-            status_code=400,
-            detail="File too large"
-        )
-
+        raise HTTPException(status_code=400, detail="File too large")
 
     try:
 
@@ -102,34 +93,42 @@ async def process_image(
         h, w = img_bgr.shape[:2]
         log_mem("after_preprocess")
 
+        # --- SEGMENTATION (load → use → release) ---
         regions = segmenter.segment(img_bgr)
         log_mem("after_segment")
+        segmenter.release_model()
 
-        labels = ocr_extractor.extract(img_bgr)
-        log_mem("after_ocr")
+        # --- OCR (load → use → release) ---
+        rss_before_ocr = _rss_mb()
+        if rss_before_ocr > MEMORY_THRESHOLD_MB:
+            print(
+                f"[pipeline] SKIPPING OCR: RSS {rss_before_ocr:.0f}MB "
+                f"exceeds threshold {MEMORY_THRESHOLD_MB}MB",
+                file=sys.stderr, flush=True
+            )
+            labels = []
+            ocr_skipped = True
+        else:
+            labels = ocr_extractor.extract(img_bgr)
+            log_mem("after_ocr")
+            release_reader()
 
+        # --- SIMPLIFICATION ---
         simplified_paths = simplifier.simplify(
-            img_bgr,
-            regions,
-            labels,
-            simplification_level
+            img_bgr, regions, labels, simplification_level
         )
         del img_bgr
         gc.collect()
         log_mem("after_simplify")
 
+        # --- TACTILE BUILD ---
         svg_str, png_b64, tactile_metadata = tactile_builder.build(
-            w,
-            h,
-            simplified_paths,
-            regions,
-            labels,
-            min_stroke_width
+            w, h, simplified_paths, regions, labels, min_stroke_width
         )
         del simplified_paths
         log_mem("after_build")
 
-
+        # --- FORMAT RESPONSE ---
         n_regions = len(regions)
         n_labels = len(labels)
 
@@ -150,7 +149,6 @@ async def process_image(
             for i, r in enumerate(regions)
         ]
 
-
         formatted_labels = [
             ExtractedLabelModel.model_construct(
                 id=f"label_{i+1}",
@@ -163,7 +161,6 @@ async def process_image(
             )
             for i, l in enumerate(labels)
         ]
-
 
         formatted_paths = [
             TactilePathModel.model_construct(
@@ -180,16 +177,11 @@ async def process_image(
         ]
 
         n_paths = len(formatted_paths)
-
         del regions, labels
         gc.collect()
         log_mem("after_format")
 
-
-        processing_time_ms = int(
-            (time.time()-start_time)*1000
-        )
-
+        processing_time_ms = int((time.time() - start_time) * 1000)
 
         resp = ProcessResponse.model_construct(
             job_id=f"tg_{uuid.uuid4().hex[:8]}",
@@ -217,22 +209,17 @@ async def process_image(
         print(
             f"[pipeline] DONE in {processing_time_ms}ms  "
             f"regions={n_regions} paths={n_paths} labels={n_labels}  "
-            f"rss_delta={rss_end - rss_start:+.1f}MB  "
-            f"peak={rss_end:.1f}MB",
-            file=sys.stderr,
-            flush=True
+            f"ocr_skipped={ocr_skipped}  "
+            f"rss={rss_end:.0f}MB",
+            file=sys.stderr, flush=True
         )
 
         return resp
 
-
-
     except HTTPException:
         raise
     except Exception as e:
-
         traceback.print_exc()
-
         raise HTTPException(
             status_code=500,
             detail=f"Error processing image: {str(e)}"
