@@ -25,6 +25,7 @@ class Simplifier:
 
         # remove OCR text areas
         clean = gray.copy()
+        del gray
 
 
         for label in labels:
@@ -47,6 +48,8 @@ class Simplifier:
             0
         )
 
+        del clean
+
 
         # edge detection
         edges = cv2.Canny(
@@ -54,6 +57,8 @@ class Simplifier:
             90,
             180
         )
+
+        del blur
 
 
         # connect broken lines slightly
@@ -70,12 +75,16 @@ class Simplifier:
             iterations=1
         )
 
+        del kernel
+
 
         contours, _ = cv2.findContours(
             edges,
             cv2.RETR_LIST,
             cv2.CHAIN_APPROX_SIMPLE
         )
+
+        del edges
 
 
         simplified_paths = []

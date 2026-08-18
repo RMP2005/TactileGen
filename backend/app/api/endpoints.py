@@ -1,3 +1,4 @@
+import gc
 import time
 import uuid
 import traceback
@@ -20,6 +21,7 @@ from app.pipeline.segmenter import Segmenter
 from app.pipeline.ocr_extractor import OCRExtractor
 from app.pipeline.simplifier import Simplifier
 from app.pipeline.tactile_builder import TactileBuilder
+from app.utils.memlog import log_mem
 
 
 router = APIRouter()
@@ -92,23 +94,25 @@ async def process_image(
     try:
 
         img_bgr = preprocessor.process(content)
-
+        del content
         h, w = img_bgr.shape[:2]
 
+        log_mem("preprocess")
 
         regions = segmenter.segment(img_bgr)
+        log_mem("segment")
 
         labels = ocr_extractor.extract(img_bgr)
+        log_mem("ocr")
 
-
-        # UPDATED: labels passed into simplifier
         simplified_paths = simplifier.simplify(
             img_bgr,
             regions,
             labels,
             simplification_level
         )
-
+        del img_bgr
+        log_mem("simplify")
 
         svg_str, png_b64, tactile_metadata = tactile_builder.build(
             w,
@@ -118,6 +122,8 @@ async def process_image(
             labels,
             min_stroke_width
         )
+        gc.collect()
+        log_mem("tactile_build")
 
 
 
@@ -204,6 +210,8 @@ async def process_image(
         processing_time_ms = int(
             (time.time()-start_time)*1000
         )
+
+        log_mem("response_build")
 
 
 

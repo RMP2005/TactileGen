@@ -70,6 +70,8 @@ class TactileBuilder:
                 ]
             )
 
+            del contour, simplified
+
 
             svg_parts.append(
                 f'<polygon '
@@ -140,14 +142,17 @@ class TactileBuilder:
             svg_parts
         )
 
+        del svg_parts
+
 
 
         # ---------------- PNG ----------------
 
-        img = np.ones(
-            (height,width,3),
+        img = np.full(
+            (height, width, 3),
+            255,
             dtype=np.uint8
-        ) * 255
+        )
 
 
 
@@ -178,6 +183,8 @@ class TactileBuilder:
                 lineType=cv2.LINE_AA
             )
 
+            del contour
+
 
 
         # Paths
@@ -203,6 +210,8 @@ class TactileBuilder:
                 max(stroke_width-1,3),
                 lineType=cv2.LINE_AA
             )
+
+            del pts
 
 
 
@@ -230,6 +239,8 @@ class TactileBuilder:
             +
             encode_image(img)
         )
+
+        del img
 
 
         metadata = {
