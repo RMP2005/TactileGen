@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from app.utils.image_io import encode_image
+from app.utils.memlog import log_mem
 
 
 class TactileBuilder:
@@ -18,6 +19,8 @@ class TactileBuilder:
         labels: list,
         stroke_width: int
     ):
+
+        log_mem("build_start")
 
         # ---------------- SVG ----------------
 
@@ -234,6 +237,8 @@ class TactileBuilder:
 
 
 
+        log_mem("build_before_encode")
+
         png_b64 = (
             "data:image/png;base64,"
             +
@@ -249,5 +254,6 @@ class TactileBuilder:
             "labels": len(labels)
         }
 
+        log_mem("build_end")
 
         return svg_str, png_b64, metadata

@@ -10,18 +10,17 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   
   const isWorkspace = pathname?.startsWith('/workspace');
-  
-  if (isWorkspace) return null;
-
-
 
   useEffect(() => {
+    if (isWorkspace) return;
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [isWorkspace]);
+
+  if (isWorkspace) return null;
 
   return (
     <header 
@@ -39,23 +38,13 @@ export default function Navbar() {
         </Link>
         
         <nav className="flex items-center gap-6">
-          {!isWorkspace && (
-            <Link 
-              href="/workspace"
-              className="group flex items-center gap-2 text-sm font-medium bg-cyan-400 text-cyan-950 px-4 py-2 rounded-full hover:bg-cyan-300 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
-            >
-              Try a diagram
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
-          )}
-          {isWorkspace && (
-            <Link
-              href="/"
-              className="text-sm font-medium text-zinc-400 hover:text-zinc-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 rounded-md px-2 py-1"
-            >
-              Back to Home
-            </Link>
-          )}
+          <Link 
+            href="/workspace"
+            className="group flex items-center gap-2 text-sm font-medium bg-cyan-400 text-cyan-950 px-4 py-2 rounded-full hover:bg-cyan-300 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+          >
+            Try a diagram
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </Link>
         </nav>
       </div>
     </header>

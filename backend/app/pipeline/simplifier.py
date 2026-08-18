@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from app.utils.memlog import log_mem
 
 
 class Simplifier:
@@ -16,24 +17,18 @@ class Simplifier:
         level: float = 0.5
     ) -> list:
 
+        log_mem("simplify_start")
 
         gray = cv2.cvtColor(
             img_bgr,
             cv2.COLOR_BGR2GRAY
         )
 
-
-        # remove OCR text areas
-        clean = gray.copy()
-        del gray
-
-
+        # remove OCR text areas — paint white in-place on gray
         for label in labels:
-
             x, y, w, h = label["bbox"]
-
             cv2.rectangle(
-                clean,
+                gray,
                 (max(0, x - 8), max(0, y - 8)),
                 (x + w + 8, y + h + 8),
                 255,
@@ -43,12 +38,12 @@ class Simplifier:
 
         # gentle smoothing
         blur = cv2.GaussianBlur(
-            clean,
+            gray,
             (5, 5),
             0
         )
 
-        del clean
+        del gray
 
 
         # edge detection
@@ -140,5 +135,6 @@ class Simplifier:
             reverse=True
         )
 
+        log_mem("simplify_end")
 
         return simplified_paths[:100]

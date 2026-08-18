@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, MouseEvent, TouchEvent, WheelEvent } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect, MouseEvent, TouchEvent, WheelEvent } from 'react';
 import { parseSvgPaths, distanceToPath, Point } from '@/lib/vector-utils';
 import { SemanticRegion, ExtractedLabel } from '@/types/diagram';
 
@@ -20,11 +20,9 @@ export function useTactileCanvas({ svgContent, regions = [], labels = [] }: UseT
   const isDragging = useRef(false);
   const lastPanPoint = useRef({ x: 0, y: 0 });
   
-  // Cache parsed paths
-  const parsedPathsRef = useRef<Point[][]>([]);
-  if (svgContent && parsedPathsRef.current.length === 0) {
-    parsedPathsRef.current = parseSvgPaths(svgContent);
-  }
+  const parsedPaths = useMemo(() => svgContent ? parseSvgPaths(svgContent) : [], [svgContent]);
+  const parsedPathsRef = useRef<Point[][]>(parsedPaths);
+  useEffect(() => { parsedPathsRef.current = parsedPaths; }, [parsedPaths]);
 
   const handlePointerMove = useCallback((clientX: number, clientY: number) => {
     if (!containerRef.current) return;

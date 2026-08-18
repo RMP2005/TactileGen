@@ -12,12 +12,14 @@ export function useDiagramPipeline() {
 
   const [progress, setProgress] = useState(0);
 
-  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const rafRef = useRef<number | null>(null);
 
 
-  const clearTimers = useCallback(() => {
-    timersRef.current.forEach(clearTimeout);
-    timersRef.current = [];
+  const cancelRaf = useCallback(() => {
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
   }, []);
 
 
@@ -27,11 +29,11 @@ export function useDiagramPipeline() {
 
       setError(null);
       setResult(null);
-      clearTimers();
+      cancelRaf();
 
 
       setStage("uploading");
-      setProgress(10);
+      setProgress(0);
 
 
       const formData = new FormData();
@@ -41,17 +43,19 @@ export function useDiagramPipeline() {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 
-      // Visual pipeline — advance stages while backend works
-      timersRef.current.push(
-        setTimeout(() => { setStage("understanding"); setProgress(25); }, 500),
-      );
-      timersRef.current.push(
-        setTimeout(() => { setStage("segmenting"); setProgress(45); }, 3000),
-      );
-      timersRef.current.push(
-        setTimeout(() => { setStage("simplifying"); setProgress(65); }, 7000),
-      );
+      // Smooth progress animation during fetch
+      let elapsed = 0;
+      const tick = () => {
+        elapsed += 100;
+        // Logarithmic progress: fast start, slow end, caps at ~85%
+        const p = Math.min(85, 85 * (1 - Math.exp(-elapsed / 8000)));
+        setProgress(Math.round(p));
+        rafRef.current = setTimeout(tick, 100) as unknown as number;
+      };
+      rafRef.current = setTimeout(tick, 100) as unknown as number;
 
+      setStage("understanding");
+      setProgress(5);
 
       console.log("[pipeline] fetch starting →", `${apiUrl}/api/v1/process`);
       const t0 = performance.now();
@@ -64,8 +68,7 @@ export function useDiagramPipeline() {
         }
       );
 
-      // Cancel visual timers and jump progress past the fake stages
-      clearTimers();
+      cancelRaf();
       console.log("[pipeline] response received, status:", response.status,
         `(${((performance.now() - t0) / 1000).toFixed(1)}s)`);
 
@@ -78,9 +81,6 @@ export function useDiagramPipeline() {
       }
 
 
-      // Advance to tactile BEFORE the slow JSON parse so the UI
-      // doesn't freeze at 65 % while the browser parses megabytes
-      // of base64 inside ProcessResponse.processed_image_base64.
       setStage("tactile");
       setProgress(90);
 
@@ -98,34 +98,34 @@ export function useDiagramPipeline() {
 
 
     }
-    catch (err: any) {
+    catch (err: unknown) {
 
-      clearTimers();
+      cancelRaf();
       console.error("[pipeline] error:", err);
       setStage("error");
       setProgress(0);
       setError(
-        err.message ||
+        (err instanceof Error ? err.message : null) ||
         "Processing failed"
       );
 
     }
 
 
-  }, [clearTimers]);
+  }, [cancelRaf]);
 
 
 
 
   const reset = useCallback(() => {
 
-    clearTimers();
+    cancelRaf();
     setStage("idle");
     setResult(null);
     setError(null);
     setProgress(0);
 
-  }, [clearTimers]);
+  }, [cancelRaf]);
 
 
 

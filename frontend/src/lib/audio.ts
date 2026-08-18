@@ -8,7 +8,7 @@ export class TactileAudioEngine {
     if (this.isInitialized) return;
     
     // Create audio context on user gesture
-    this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    this.ctx = new (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
     
     this.oscillator = this.ctx.createOscillator();
     this.gainNode = this.ctx.createGain();
