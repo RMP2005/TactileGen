@@ -10,6 +10,10 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   
   const isWorkspace = pathname?.startsWith('/workspace');
+  
+  if (isWorkspace) return null;
+
+
 
   useEffect(() => {
     const handleScroll = () => {

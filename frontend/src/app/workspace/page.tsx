@@ -1,170 +1,531 @@
 "use client";
 
-import { useDiagramPipeline } from '@/hooks/useDiagramPipeline';
-import { motion, AnimatePresence } from 'framer-motion';
-import UploadZone from '@/components/workspace/UploadZone';
-import PipelineVisualizer from '@/components/workspace/PipelineVisualizer';
-import TactileCanvas from '@/components/workspace/TactileCanvas';
-import BeforeAfterSlider from '@/components/workspace/BeforeAfterSlider';
-import ExportPanel from '@/components/workspace/ExportPanel';
-import LabelInspector from '@/components/workspace/LabelInspector';
-import { slideInLeft, slideInRight, scaleIn } from '@/lib/motion';
-import { ArrowLeft, RefreshCcw } from 'lucide-react';
-import { useState } from 'react';
+import { useState } from "react";
+import Link from "next/link";
+import {
+  ArrowRight,
+  AudioLines,
+  Menu,
+  ScanLine,
+  Waves,
+  Download
+} from "lucide-react";
+
+import { useDiagramPipeline } from "@/hooks/useDiagramPipeline";
+
 
 export default function WorkspacePage() {
-  const { stage, result, error, progress, processImage, reset } = useDiagramPipeline();
-  const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null);
-  
+
+
+  const {
+    result,
+    progress,
+    processImage,
+    stage,
+  } = useDiagramPipeline();
+
+
+
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+
+
   const handleUpload = (file: File) => {
-    const url = URL.createObjectURL(file);
-    setOriginalImageUrl(url);
+
+    setImageUrl(
+      URL.createObjectURL(file)
+    );
+
     processImage(file);
+
   };
 
-  const handleReset = () => {
-    if (originalImageUrl) URL.revokeObjectURL(originalImageUrl);
-    setOriginalImageUrl(null);
-    reset();
+
+
+  const confidence =
+    result?.semantic_regions?.length
+      ? Math.round(
+          (result.semantic_regions.reduce(
+            (sum, r) => sum + r.confidence,
+            0
+          ) /
+            result.semantic_regions.length) *
+            100
+        )
+      : null;
+
+
+
+
+  const statusText = () => {
+
+    if(stage === "understanding")
+      return "UNDERSTANDING STRUCTURE";
+
+    if(stage === "segmenting")
+      return "DETECTING REGIONS";
+
+    if(stage === "simplifying")
+      return "SIMPLIFYING PATHS";
+
+    if(stage === "tactile")
+      return "GENERATING TACTILE MAP";
+
+    if(stage === "complete")
+      return "READY";
+
+    return "AI TACTILE GENERATION";
+
   };
+
+
+
 
   return (
-    <div className="flex-1 flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-zinc-950">
-      {/* Workspace Header */}
-      <div className="h-14 border-b border-zinc-800 bg-zinc-950 px-6 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-4">
-          {stage !== 'idle' && (
-            <button 
-              onClick={handleReset}
-              className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-100 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              New Diagram
-            </button>
-          )}
-          <h1 className="font-medium text-zinc-200">Workspace</h1>
-        </div>
-        
-        {stage !== 'idle' && (
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-zinc-500">Status:</span>
-            <span className={`text-sm font-medium px-2 py-1 rounded-md ${
-              stage === 'complete' ? 'bg-emerald-950/50 text-emerald-400' : 
-              stage === 'error' ? 'bg-red-950/50 text-red-400' : 'bg-cyan-950/50 text-cyan-400'
-            }`}>
-              {stage === 'complete' ? 'Processing Complete' : 
-               stage === 'error' ? 'Error' : 'Processing...'}
-            </span>
+
+    <main className="min-h-screen bg-[#070706] text-[#e8e2d6] overflow-hidden">
+
+
+
+      <nav className="h-20 border-b border-white/10 flex items-center justify-between px-10">
+
+
+        <div className="flex items-center gap-3">
+
+          <div className="w-7 h-7 rounded-full border border-orange-400/50 flex items-center justify-center">
+
+            <ScanLine className="w-4 h-4 text-orange-400"/>
+
           </div>
-        )}
-      </div>
 
-      {/* Main Workspace Area */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-6">
-        <AnimatePresence mode="wait">
-          
-          {/* STATE 1: Idle (Upload) */}
-          {stage === 'idle' && (
-            <motion.div 
-              key="upload"
-              variants={scaleIn}
-              initial="hidden"
-              animate="visible"
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="max-w-2xl mx-auto mt-20"
-            >
-              <UploadZone onUpload={handleUpload} />
-            </motion.div>
-          )}
 
-          {/* STATE 2: Processing Pipeline */}
-          {stage !== 'idle' && stage !== 'complete' && stage !== 'error' && (
-            <motion.div
-              key="processing"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="max-w-4xl mx-auto mt-10 space-y-12"
-            >
-              <div className="text-center space-y-2">
-                <h2 className="text-2xl font-light tracking-tight text-zinc-100">Analyzing your diagram...</h2>
-                <p className="text-zinc-400">Our computer vision model is extracting semantics.</p>
-              </div>
-              
-              <PipelineVisualizer stage={stage} />
-              
-              <div className="w-full bg-zinc-900 h-2 rounded-full overflow-hidden">
-                <motion.div 
-                  className="h-full bg-cyan-400"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.5 }}
+          <span className="font-serif text-xl tracking-wide">
+            TactileGen
+          </span>
+
+
+        </div>
+
+
+
+
+
+        <div className="hidden md:flex gap-12 text-xs tracking-[0.25em] text-zinc-500">
+
+
+          <span>
+            STRUCTURES {result?.metadata?.total_regions_detected ?? "--"}
+          </span>
+
+
+          <span>
+            PATHS {result?.tactile_paths?.length ?? "--"}
+          </span>
+
+
+          <span>
+            LABELS {result?.extracted_labels?.length ?? "--"}
+          </span>
+
+
+          <span>
+            CONFIDENCE {confidence ? `${confidence}%` : "--"}
+          </span>
+
+
+        </div>
+
+
+
+        <Menu className="text-zinc-400"/>
+
+
+      </nav>
+
+
+
+
+
+
+
+      <section className="grid lg:grid-cols-[420px_1fr] gap-16 px-16 py-20">
+
+
+
+
+
+        <div className="flex flex-col justify-center">
+
+
+          <p className="text-xs tracking-[0.4em] text-orange-400 mb-8">
+            EXPERIMENTAL ACCESSIBILITY LABORATORY
+          </p>
+
+
+
+
+          <h1 className="font-serif text-7xl leading-[0.95]">
+
+            Make every
+
+            <br/>
+
+            <span className="italic text-orange-400">
+              diagram
+            </span>
+
+            <br/>
+
+            touchable.
+
+          </h1>
+
+
+
+
+          <p className="mt-8 text-zinc-500 leading-relaxed max-w-sm">
+
+            Transform visual diagrams into tactile-ready structures using
+            intelligent computer vision.
+
+          </p>
+
+
+
+
+
+          <label className="mt-10 inline-flex items-center gap-4 bg-orange-400 text-black w-fit px-7 py-4 cursor-pointer">
+
+
+            Enter the instrument
+
+
+            <ArrowRight className="w-4"/>
+
+
+            <input
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e)=>{
+
+                if(e.target.files?.[0]){
+
+                  handleUpload(e.target.files[0]);
+
+                }
+
+              }}
+            />
+
+
+          </label>
+
+
+
+
+
+          <div className="mt-24 border-l border-orange-400/30 pl-6">
+
+
+            <p className="text-xs text-orange-400">
+              01
+            </p>
+
+
+            <h3 className="mt-3 font-serif text-xl">
+              ORIGINAL IMAGE
+            </h3>
+
+
+            <p className="text-sm text-zinc-600 mt-2">
+              Raw visual information
+            </p>
+
+
+          </div>
+
+
+        </div>
+
+
+
+
+
+
+
+
+
+        <div className="border border-white/10 bg-[#0b0b09] p-8">
+
+
+
+          <div className="flex justify-between text-xs tracking-widest text-zinc-500 mb-8">
+
+
+            <span>
+              LIVE SPECIMEN / CELL STRUCTURE
+            </span>
+
+
+
+            <span className="text-orange-400">
+
+              {statusText()}
+
+            </span>
+
+
+          </div>
+
+
+
+
+
+
+          <div className="aspect-video border border-white/10 bg-[#151512] flex items-center justify-center relative overflow-hidden">
+
+
+
+            {
+              result?.processed_image_base64 ? (
+
+                <img
+                  src={result.processed_image_base64}
+                  className="max-h-full object-contain"
                 />
-              </div>
-            </motion.div>
-          )}
 
-          {/* STATE 3: Complete (Results) */}
-          {stage === 'complete' && result && originalImageUrl && (
-            <motion.div
-              key="results"
-              className="h-full flex flex-col md:flex-row gap-6 max-w-7xl mx-auto"
-            >
-              {/* Left Column: Original & Comparison */}
-              <motion.div 
-                variants={slideInLeft}
-                initial="hidden"
-                animate="visible"
-                className="w-full md:w-1/3 flex flex-col gap-6 shrink-0"
-              >
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
-                  <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wider mb-4">Comparison</h3>
-                  <BeforeAfterSlider 
-                    originalImage={originalImageUrl} 
-                    tactileImage={`data:image/svg+xml;utf8,${encodeURIComponent(result.tactile_svg)}`} 
-                  />
+
+              ) : imageUrl ? (
+
+
+                <img
+                  src={imageUrl}
+                  className="max-h-full object-contain"
+                />
+
+
+              ) : (
+
+
+                <div className="text-zinc-600">
+                  Upload diagram to begin
                 </div>
-                
-                <LabelInspector labels={result.extracted_labels} />
-                <ExportPanel result={result} />
-              </motion.div>
 
-              {/* Right Column: Interactive Canvas */}
-              <motion.div 
-                variants={slideInRight}
-                initial="hidden"
-                animate="visible"
-                className="flex-1 min-h-[500px]"
-              >
-                <TactileCanvas result={result} />
-              </motion.div>
-            </motion.div>
-          )}
-          
-          {/* STATE 4: Error */}
-          {stage === 'error' && (
-            <motion.div
-              key="error"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="max-w-md mx-auto mt-20 text-center space-y-6"
-            >
-              <div className="w-16 h-16 bg-red-950 rounded-full flex items-center justify-center mx-auto mb-4">
-                <RefreshCcw className="w-8 h-8 text-red-500" />
+
+              )
+            }
+
+
+
+            <div className="absolute inset-0 border border-orange-400/20 rounded-full scale-75 animate-pulse"/>
+
+
+          </div>
+
+
+
+
+
+          {
+            result && (
+
+              <div className="flex gap-4 mt-6">
+
+
+                <a
+                  href={result.processed_image_base64}
+                  download="tactile_output.png"
+                  className="flex items-center gap-2 border border-orange-400/40 px-5 py-3 text-xs tracking-widest text-orange-400"
+                >
+
+                  <Download className="w-3"/>
+
+                  DOWNLOAD PNG
+
+                </a>
+
+
+
+
+                <a
+                  href={
+                    "data:image/svg+xml;charset=utf-8," +
+                    encodeURIComponent(result.tactile_svg)
+                  }
+                  download="tactile_output.svg"
+                  className="flex items-center gap-2 border border-white/20 px-5 py-3 text-xs tracking-widest"
+                >
+
+                  <Download className="w-3"/>
+
+                  DOWNLOAD SVG
+
+                </a>
+
+
               </div>
-              <h2 className="text-xl font-medium text-zinc-100">Processing Failed</h2>
-              <p className="text-zinc-400">{error}</p>
-              <button 
-                onClick={handleReset}
-                className="px-6 py-3 bg-zinc-800 text-zinc-200 rounded-lg font-medium hover:bg-zinc-700 transition-colors"
-              >
-                Try Again
-              </button>
-            </motion.div>
-          )}
-          
-        </AnimatePresence>
-      </div>
-    </div>
-  );
+
+            )
+          }
+
+
+
+
+
+
+
+          <div className="mt-8">
+
+
+            <div className="flex justify-between text-xs text-zinc-500">
+
+
+              <span>
+                TRANSFORMATION PROGRESS
+              </span>
+
+
+              <span>
+                {progress}%
+              </span>
+
+
+            </div>
+
+
+
+
+            <div className="h-px bg-zinc-700 mt-4 relative">
+
+
+              <div
+                className="absolute left-0 top-0 h-px bg-orange-400 transition-all duration-500"
+                style={{
+                  width:`${progress}%`
+                }}
+              />
+
+
+            </div>
+
+
+
+
+
+            
+
+
+            <div className="flex justify-between mt-6 text-xs tracking-widest text-zinc-500">
+
+
+<span
+  className={
+    stage === "uploading"
+      ? "text-orange-400"
+      : ""
+  }
+>
+  01 ORIGINAL
+</span>
+
+
+
+<span
+  className={
+    stage === "understanding" ||
+    stage === "segmenting"
+      ? "text-orange-400"
+      : ""
+  }
+>
+  02 STRUCTURE
+</span>
+
+
+
+
+<span
+  className={
+    stage === "simplifying"
+      ? "text-orange-400"
+      : ""
+  }
+>
+  03 SIMPLIFY
+</span>
+
+
+
+
+<span
+  className={
+    stage === "tactile" ||
+    stage === "complete"
+      ? "text-orange-400"
+      : ""
+  }
+>
+  04 TACTILE
+</span>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+</section>
+
+
+
+
+
+<footer className="border-t border-white/10 px-16 py-6 flex justify-between text-xs tracking-widest text-zinc-500">
+
+
+<div className="flex gap-8">
+
+
+<span className="flex gap-2 items-center">
+
+<AudioLines className="w-4"/>
+
+AUDIO ON
+
+</span>
+
+
+
+<span className="flex gap-2 items-center">
+
+<Waves className="w-4"/>
+
+HAPTICS ON
+
+</span>
+
+
+</div>
+
+
+
+<Link href="/" className="text-orange-400">
+
+EXPLORE WORKSPACE →
+
+</Link>
+
+
+</footer>
+
+
+
+</main>
+
+);
 }

@@ -23,7 +23,7 @@ class Simplifier:
         )
 
 
-        # Remove OCR text regions
+        # remove OCR text areas
         clean = gray.copy()
 
 
@@ -40,7 +40,7 @@ class Simplifier:
             )
 
 
-        # Slight smoothing
+        # gentle smoothing
         blur = cv2.GaussianBlur(
             clean,
             (5, 5),
@@ -48,7 +48,7 @@ class Simplifier:
         )
 
 
-        # Detect meaningful edges
+        # edge detection
         edges = cv2.Canny(
             blur,
             90,
@@ -56,7 +56,7 @@ class Simplifier:
         )
 
 
-        # Keep connected structures but don't over merge
+        # connect broken lines slightly
         kernel = cv2.getStructuringElement(
             cv2.MORPH_RECT,
             (3, 3)
@@ -90,15 +90,15 @@ class Simplifier:
             )
 
 
-            # remove tiny noise only
-            if length < 45:
+            # remove only very tiny noise
+            if length < 35:
                 continue
 
 
 
             epsilon = (
-                0.010 +
-                level * 0.015
+                0.012 +
+                level * 0.010
             ) * length
 
 
@@ -124,4 +124,12 @@ class Simplifier:
                 )
 
 
-        return simplified_paths
+
+        # keep meaningful paths first
+        simplified_paths.sort(
+            key=lambda x: len(x),
+            reverse=True
+        )
+
+
+        return simplified_paths[:100]
