@@ -41,9 +41,6 @@ export function useDiagramPipeline() {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 
-      let backendResult: ProcessingResult;
-
-
       // Visual pipeline — advance stages while backend works
       timersRef.current.push(
         setTimeout(() => { setStage("understanding"); setProgress(25); }, 500),
@@ -56,6 +53,8 @@ export function useDiagramPipeline() {
       );
 
 
+      console.log("[pipeline] fetch starting →", `${apiUrl}/api/v1/process`);
+
       const response = await fetch(
         `${apiUrl}/api/v1/process`,
         {
@@ -64,8 +63,8 @@ export function useDiagramPipeline() {
         }
       );
 
-
       clearTimers();
+      console.log("[pipeline] response received, status:", response.status);
 
 
       if (!response.ok) {
@@ -76,13 +75,9 @@ export function useDiagramPipeline() {
       }
 
 
-      backendResult = await response.json();
-
-
-      setStage("tactile");
-      setProgress(90);
-
-      await new Promise(resolve => setTimeout(resolve, 800));
+      console.log("[pipeline] calling response.json()…");
+      const backendResult: ProcessingResult = await response.json();
+      console.log("[pipeline] response.json() done — setting result immediately");
 
 
       setResult(backendResult);
@@ -94,6 +89,7 @@ export function useDiagramPipeline() {
     catch (err: any) {
 
       clearTimers();
+      console.error("[pipeline] error:", err);
       setStage("error");
       setProgress(0);
       setError(
@@ -118,6 +114,8 @@ export function useDiagramPipeline() {
     setProgress(0);
 
   }, [clearTimers]);
+
+
 
 
 
