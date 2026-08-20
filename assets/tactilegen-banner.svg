@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200" width="800" height="200">
+  <defs>
+    <linearGradient id="touchGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B5CF6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6D28D9;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0F0F11;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1A1A1E;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="200" rx="12" fill="url(#bgGrad)"/>
+  <g transform="translate(80, 35)">
+    <path d="M30 80 L30 40 C30 30 40 25 45 30 L45 80" fill="none" stroke="url(#touchGrad)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M50 80 L50 25 C50 15 60 10 65 15 L65 80" fill="none" stroke="url(#touchGrad)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M70 80 L70 30 C70 20 80 15 85 20 L85 80" fill="none" stroke="url(#touchGrad)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M90 80 L90 45 C90 35 100 30 105 35 L105 80" fill="none" stroke="url(#touchGrad)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M25 80 C25 100 35 110 67 110 C100 110 110 100 110 80" fill="none" stroke="url(#touchGrad)" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="67" cy="55" r="20" fill="none" stroke="#8B5CF6" stroke-width="1.5" opacity="0.3"/>
+    <circle cx="67" cy="55" r="35" fill="none" stroke="#8B5CF6" stroke-width="1" opacity="0.15"/>
+  </g>
+  <text x="230" y="95" font-family="'Segoe UI', Arial, sans-serif" font-size="68" font-weight="700" fill="#8B5CF6" letter-spacing="4">TactileGen</text>
+  <text x="232" y="130" font-family="'Segoe UI', Arial, sans-serif" font-size="18" fill="#888888" letter-spacing="5">MAKE EVERY DIAGRAM TOUCHABLE</text>
+</svg>

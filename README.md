@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/tactilegen-banner.svg" width="800" alt="TactileGen Logo"/>
+</p>
+
 <h1 align="center">
 🖐️ TactileGen
 </h1>
