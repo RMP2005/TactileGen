@@ -259,6 +259,18 @@ http://localhost:3000
 ```
 
 ---
+# 📸 Screenshots :
+<img width="1470" height="838" alt="image" src="https://github.com/user-attachments/assets/7ab42ce1-5328-47d3-bfde-c176e29d7949" />
+<img width="830" height="786" alt="image" src="https://github.com/user-attachments/assets/93b26950-652c-46e1-893f-3345ef9acd31" />
+
+png exported file:
+<img width="768" height="1024" alt="tactile_output" src="https://github.com/user-attachments/assets/00ffa280-a294-4d5a-9b05-cd49ff111a15" />
+
+
+
+
+
+
 
 # 📡 API Reference
 
